@@ -7,9 +7,9 @@ return new Config(
         'mode' => 'DEVELOPMENT', //DEVELOPMENT, PRODUCTION, DEMO
 
         'database' => [
-            'adapter' => 'Phalcon\Db\Adapter\Pdo\Sqlsrv',
+            'adapter' => 'Phalcon\Db\Adapter\Pdo\Mysql',
             'host' => 'localhost',
-            'username' => 'user',
+            'port' => '3306',
             'password' => 'pass',
             'dbname' => 'dbname'
         ],   
