@@ -30,7 +30,6 @@ $di['router'] = function() use ($defaultModule, $modules, $di, $config) {
 	 * Module Routing
 	 */
 	foreach ($modules as $moduleName => $module) {
-
 		if ($module['defaultRouting'] == true) {
 			/**
 			 * Default Module routing

@@ -20,9 +20,9 @@ use Phalcon\Mvc\Controller;
 
 class AuthController extends Controller
 {
-    public function client_grantAction()
+    
+    public function clientGrantAction()
     {
-
         $serverResponse = new \GuzzleHttp\Psr7\Response();
         $request = ServerRequest::fromGlobals();
         $response = $this->oauth2Server->respondToAccessTokenRequest(ServerRequest::fromGlobals(), $serverResponse);
