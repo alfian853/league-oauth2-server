@@ -1,19 +1,30 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: falnerz
- * Date: 4/19/19
- * Time: 2:29 PM
- */
 
 namespace App\Oauth\Repository;
 
-
+use App\Oauth\Library\OAuthHelper;
+use App\Oauth\Library\Utils;
+use App\Oauth\Models\RefreshToken;
 use League\OAuth2\Server\Entities\RefreshTokenEntityInterface;
 use League\OAuth2\Server\Exception\UniqueTokenIdentifierConstraintViolationException;
 use League\OAuth2\Server\Repositories\RefreshTokenRepositoryInterface;
 
-class RefreshTokenRepository implements RefreshTokenRepositoryInterface {
+/**
+ * Class RefreshTokenRepository
+ * @package App\Repositories
+ */
+class RefreshTokenRepository extends Repository implements RefreshTokenRepositoryInterface
+{
+    use Utils, OAuthHelper;
+    /**
+     * Model class name for the concrete implementation
+     *
+     * @return string
+     */
+    public function modelName()
+    {
+        return RefreshToken::class;
+    }
 
     /**
      * Creates a new refresh token
@@ -22,7 +33,7 @@ class RefreshTokenRepository implements RefreshTokenRepositoryInterface {
      */
     public function getNewRefreshToken()
     {
-        // TODO: Implement getNewRefreshToken() method.
+        return new RefreshToken();
     }
 
     /**
@@ -34,7 +45,19 @@ class RefreshTokenRepository implements RefreshTokenRepositoryInterface {
      */
     public function persistNewRefreshToken(RefreshTokenEntityInterface $refreshTokenEntity)
     {
-        // TODO: Implement persistNewRefreshToken() method.
+        $token = $refreshTokenEntity->getIdentifier();
+        if ($this->findOne(['refresh_token' => $token])) {
+            throw UniqueTokenIdentifierConstraintViolationException::create();
+        }
+
+        $accessToken = $refreshTokenEntity->getAccessToken();
+        $this->create([
+            'refresh_token' => $token,
+            'expires' => $this->formatDateTime($refreshTokenEntity->getExpiryDateTime()),
+            'client_id' => $accessToken->getClient()->getIdentifier(),
+            'user_id' => $accessToken->getUserIdentifier(),
+            'revoked' => 0,
+        ]);
     }
 
     /**
@@ -44,7 +67,7 @@ class RefreshTokenRepository implements RefreshTokenRepositoryInterface {
      */
     public function revokeRefreshToken($tokenId)
     {
-        // TODO: Implement revokeRefreshToken() method.
+        $this->update(['refresh_token' => $tokenId], ['revoked' => 1]);
     }
 
     /**
@@ -56,6 +79,10 @@ class RefreshTokenRepository implements RefreshTokenRepositoryInterface {
      */
     public function isRefreshTokenRevoked($tokenId)
     {
-        // TODO: Implement isRefreshTokenRevoked() method.
+        if ($result = $this->findOne(['refresh_token' => $tokenId])) {
+            return (int)$result->revoked === 1;
+        }
+
+        return true;
     }
 }

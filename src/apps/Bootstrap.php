@@ -13,6 +13,8 @@ class Bootstrap extends Application
 	{
 		$this->modules = require APP_PATH . '/config/modules.php';
 		$this->defaultModule= $defaultModule;
+		$dotenv = Dotenv\Dotenv::create(__DIR__);
+		$dotenv->load();
 	}
 
 	public function init()

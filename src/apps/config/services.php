@@ -1,5 +1,6 @@
 <?php
 
+use App\Oauth\Library\Response;
 use App\Oauth\Repository\AuthCodeRepository;
 use App\Oauth\Repository\RefreshTokenRepository;
 use League\OAuth2\Server\Grant\AuthCodeGrant;
@@ -7,17 +8,52 @@ use League\OAuth2\Server\Grant\ClientCredentialsGrant;
 use League\OAuth2\Server\Grant\ImplicitGrant;
 use League\OAuth2\Server\Grant\RefreshTokenGrant;
 use Phalcon\Session\Adapter\Files as Session;
+use Phalcon\Db\Adapter\Pdo\Mysql as DbAdapter;
 use Phalcon\Security;
 use Phalcon\Mvc\Dispatcher;
 use Phalcon\Flash\Direct as FlashDirect;
 use Phalcon\Flash\Session as FlashSession;
 use App\Oauth\Repository\AccessTokenRepository;
 use App\Oauth\Repository\ScopeRepository;
+use App\Oauth\Repository\UserRepository;
 use Defuse\Crypto\Key;
 use App\Oauth\Repository\ClientRepository;
 use League\OAuth2\Server\AuthorizationServer;
 
-$di = new \Phalcon\Di\FactoryDefault();
+
+
+$di->setShared('db', function () use ($config) {
+    $connection = new DbAdapter([
+        'host' => $config->database->host,
+        'username' => $config->database->username,
+        'password' => $config->database->password,
+        'dbname' => $config->database->dbname,
+        'port' => $config->database->port
+    ]);
+
+    if ($config->debug) {
+        $eventsManager = new Phalcon\Events\Manager();
+        $logger = new Phalcon\Logger\Adapter\File($config->application->logsDir . "sql_debug.log");
+
+        $eventsManager->attach('db', function ($event, $connection) use ($logger) {
+            if ($event->getType() == 'beforeQuery') {
+                /** @var DbAdapter $connection */
+                $logger->log($connection->getSQLStatement(), Logger::DEBUG);
+            }
+        });
+
+        $connection->setEventsManager($eventsManager);
+    }
+
+    return $connection;
+});
+
+
+$di->setShared('modelsManager', function () {
+    return new Phalcon\Mvc\Model\Manager();
+});
+
+
 $di['config'] = function() use ($config) {
 	return $config;
 };
@@ -107,6 +143,10 @@ $di->set(
     }
 );
 
+$di['response'] = function () {
+    return new Response();
+};
+
 $di->setShared('database', function() use ($di) {
     $config = require APP_PATH.'/config/config.php';
 
@@ -128,11 +168,14 @@ $di->setShared('database', function() use ($di) {
     return $connection;
 });
 
-$di->setShared('oauth2Server',function () use ($di){
+$di->setShared('oauth2Server',function () use ($config){
 
     $clientRepository = new ClientRepository();
-    $accessTokenRepository = new AccessTokenRepository();
     $scopeRepository = new ScopeRepository();
+    $accessTokenRepository = new AccessTokenRepository();
+    $userRepository = new UserRepository();
+    $refreshTokenRepository = new RefreshTokenRepository();
+    $authCodeRepository = new AuthCodeRepository();
 
     $encryptionKey = "/FnEkTX3bA2u+R4u9PG0vTy3IMnhci9gLYd9pzarZq0=";
 
@@ -144,8 +187,30 @@ $di->setShared('oauth2Server',function () use ($di){
         $encryptionKey
     );
 
+    $passwordGrant = new \League\OAuth2\Server\Grant\PasswordGrant($userRepository, $refreshTokenRepository);
+    $passwordGrant->setRefreshTokenTTL($config->oauth->refresh_token_lifespan);
+
+    $authCodeGrant = new AuthCodeGrant(
+        $authCodeRepository,
+        $refreshTokenRepository,
+        $config->oauth->auth_code_lifespan
+    );
+
+    $refreshTokenGrant = new \League\OAuth2\Server\Grant\RefreshTokenGrant($refreshTokenRepository);
+    $refreshTokenGrant->setRefreshTokenTTL($config->oauth->refresh_token_lifespan);
+
+    $server->enableGrantType($refreshTokenGrant, $config->oauth->access_token_lifespan);
+    $authCodeGrant->setRefreshTokenTTL($config->oauth->refresh_token_lifespan);
+
+    $server->enableGrantType($authCodeGrant, $config->oauth->access_token_lifespan);
+
+    $server->enableGrantType($passwordGrant, $config->oauth->access_token_lifespan);
+
+    $server->enableGrantType(new ClientCredentialsGrant(), $config->oauth->access_token_lifespan);
+
     $server->enableGrantType(
-        new ClientCredentialsGrant(), new \DateInterval('PT1H')
+        new \League\OAuth2\Server\Grant\ImplicitGrant($config->oauth->access_token_lifespan),
+        $config->oauth->access_token_lifespan
     );
 
     return $server;

@@ -17,6 +17,9 @@ class Module implements ModuleDefinitionInterface
         $loader->registerNamespaces([
             'App\Oauth\Controllers\Web' => __DIR__ . '/controllers/web',
             'App\Oauth\Controllers\Api' => __DIR__ . '/controllers/api',
+            'App\Oauth\Controllers\Common' => __DIR__ . '/controllers/common',
+            'App\Oauth\Library' => __DIR__ . '/library',
+            'App\Oauth\CInterface' => __DIR__ . '/interfaces',
             'App\Oauth\Repository' => __DIR__ . '/repository',
             'App\Oauth\Models' => __DIR__ . '/models'
         ]);

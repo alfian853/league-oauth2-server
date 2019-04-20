@@ -1,29 +1,51 @@
 <?php
+
 namespace App\Oauth\Repository;
 
-use App\Oauth\Models\AccessTokenEntity;
-use DateTime;
+use App\Oauth\Library\OAuthHelper;
+use App\Oauth\Library\Utils;
+use App\Oauth\Models\AccessToken;
 use League\OAuth2\Server\Entities\AccessTokenEntityInterface;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
-use League\OAuth2\Server\Entities\ScopeEntityInterface;
 use League\OAuth2\Server\Exception\UniqueTokenIdentifierConstraintViolationException;
 use League\OAuth2\Server\Repositories\AccessTokenRepositoryInterface;
 
-class AccessTokenRepository implements AccessTokenRepositoryInterface
+/**
+ * Class AccessTokenRepository
+ * @package App\Repositories
+ */
+class AccessTokenRepository extends Repository implements AccessTokenRepositoryInterface
 {
+    use Utils, OAuthHelper;
+    /**
+     * Model class name for the concrete implementation
+     *
+     * @return string
+     */
+    public function modelName()
+    {
+        return AccessToken::class;
+    }
+
     /**
      * Create a new access token
      *
-     * @param ClientEntityInterface $clientEntity
-     * @param ScopeEntityInterface[] $scopes
-     * @param mixed $userIdentifier
+     * @param ClientEntityInterface  $clientEntity
+     * @param \League\OAuth2\Server\Entities\ScopeEntityInterface[] $scopes
+     * @param mixed                  $userIdentifier
      *
      * @return AccessTokenEntityInterface
      */
     public function getNewToken(ClientEntityInterface $clientEntity, array $scopes, $userIdentifier = null)
     {
-        // TODO: Implement getNewToken() method.
-        return new AccessTokenEntity();
+        $accessToken = new AccessToken();
+        foreach ($scopes as $scope) {
+            $accessToken->addScope($scope);
+        }
+
+        $accessToken->setUserIdentifier($userIdentifier);
+        $accessToken->setClient($clientEntity);
+        return $accessToken;
     }
 
     /**
@@ -35,7 +57,19 @@ class AccessTokenRepository implements AccessTokenRepositoryInterface
      */
     public function persistNewAccessToken(AccessTokenEntityInterface $accessTokenEntity)
     {
-        // TODO: Implement persistNewAccessToken() method.
+        $accessToken = $accessTokenEntity->getIdentifier();
+        if ($this->findOne(['access_token' => $accessToken])) {
+            throw UniqueTokenIdentifierConstraintViolationException::create();
+        }
+
+        $this->create([
+            'access_token' => $accessToken,
+            'expires' => $this->formatDateTime($accessTokenEntity->getExpiryDateTime()),
+            'scope' => implode(SCOPE_DELIMITER_STRING, $this->getScopeNamesFromAccessToken($accessTokenEntity)),
+            'client_id' => $accessTokenEntity->getClient()->getIdentifier(),
+            'user_id' => $accessTokenEntity->getUserIdentifier(),
+            'revoked' => 0
+        ]);
     }
 
     /**
@@ -45,7 +79,7 @@ class AccessTokenRepository implements AccessTokenRepositoryInterface
      */
     public function revokeAccessToken($tokenId)
     {
-        // TODO: Implement revokeAccessToken() method.
+        $this->update(['access_token' => $tokenId], ['revoked' => 1]);
     }
 
     /**
@@ -57,38 +91,10 @@ class AccessTokenRepository implements AccessTokenRepositoryInterface
      */
     public function isAccessTokenRevoked($tokenId)
     {
-        // TODO: Implement isAccessTokenRevoked() method.
-    }
+        if ($result = $this->findOne(['access_token' => $tokenId])) {
+            return (int)$result->revoked === 1;
+        }
 
-    /**
-     * @return ClientEntityInterface
-     */
-    public function getClient()
-    {
-        // TODO: Implement getClient() method.
-    }
-
-    /**
-     * @return DateTime
-     */
-    public function getExpiryDateTime()
-    {
-        // TODO: Implement getExpiryDateTime() method.
-    }
-
-    /**
-     * @return string|int
-     */
-    public function getUserIdentifier()
-    {
-        // TODO: Implement getUserIdentifier() method.
-    }
-
-    /**
-     * @return ScopeEntityInterface[]
-     */
-    public function getScopes()
-    {
-        // TODO: Implement getScopes() method.
+        return true;
     }
 }

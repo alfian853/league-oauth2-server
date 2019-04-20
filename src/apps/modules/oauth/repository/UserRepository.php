@@ -1,33 +1,46 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: falnerz
- * Date: 4/19/19
- * Time: 2:30 PM
- */
 
 namespace App\Oauth\Repository;
 
-
+use App\Oauth\Models\User;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\Entities\UserEntityInterface;
 use League\OAuth2\Server\Repositories\UserRepositoryInterface;
 
-class UserRepository implements UserRepositoryInterface
+/**
+ * Class UserRepository
+ * @package App\Repositories
+ */
+class UserRepository extends Repository implements UserRepositoryInterface
 {
+    /**
+     * Model class name for the concrete implementation
+     *
+     * @return string
+     */
+    public function modelName()
+    {
+        return User::class;
+    }
 
     /**
      * Get a user entity.
      *
-     * @param string $username
-     * @param string $password
-     * @param string $grantType The grant type used
+     * @param string                $username
+     * @param string                $password
+     * @param string                $grantType    The grant type used
      * @param ClientEntityInterface $clientEntity
      *
      * @return UserEntityInterface
      */
-    public function getUserEntityByUserCredentials($username, $password, $grantType, ClientEntityInterface $clientEntity)
-    {
-        // TODO: Implement getUserEntityByUserCredentials() method.
+    public function getUserEntityByUserCredentials(
+        $username,
+        $password,
+        $grantType,
+        ClientEntityInterface $clientEntity
+    ) {
+        $user = $this->findOne(['username' => $username, 'password' => $password]);
+
+        return $user;
     }
 }

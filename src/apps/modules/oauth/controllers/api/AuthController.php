@@ -18,25 +18,47 @@ use Phalcon\Mvc\Controller;
  * @package App\Controllers
  */
 
- /*
- * Expectation
- * @method POST
- * @required body : grant_type client_credentials
- * @required body : client_id
- * @optional body : client_secret
- * @optional body : scope *Space delimited*
- */
 class AuthController extends Controller
 {
     
-    public function clientGrantAction()
+    public function authorizeAction() {
+        $serverResponse = new \GuzzleHttp\Psr7\Response();
+        try {
+            $request = ServerRequest::fromGlobals();
+            $authRequest = $this->oauth2Server->validateAuthorizationRequest($request);
+            $authRequest->setUser(new User([
+                'id' => '1'
+            ]));
+            $authRequest->setAuthorizationApproved(true);
+            $response =  $this->oauth2Server->completeAuthorizationRequest($authRequest, $serverResponse);
+            $redirectUrl = $response->getHeaders()['Location'][0];
+            $this->sendJSON($response->getBody());
+        } catch (\Exception $exception) {
+            $this->sendJSON($exception->getMessage());
+        }
+    }
+
+
+    /*
+    * Expectation
+    * @method POST
+    * @required body : grant_type client_credentials
+    * @required body : client_id
+    * @optional body : client_secret
+    * @optional body : scope *Space delimited*
+    */
+    public function tokenAction()
     {
         $serverResponse = new \GuzzleHttp\Psr7\Response();
         $request = ServerRequest::fromGlobals();
         $response = $this->oauth2Server->respondToAccessTokenRequest(ServerRequest::fromGlobals(), $serverResponse);
+        $this->sendJSON($response->getBody());
+    }
+
+    private function sendJSON($response) {
         $httpResponse = new Response();
         $httpResponse->setContentType('application/json');
-        $httpResponse->setContent($response->getBody());
+        $httpResponse->setContent($response);
         $httpResponse->send();
     }
 }
