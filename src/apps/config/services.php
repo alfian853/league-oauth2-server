@@ -134,12 +134,14 @@ $di->setShared('oauth2Server',function () use ($di){
     $accessTokenRepository = new AccessTokenRepository();
     $scopeRepository = new ScopeRepository();
 
+    $encryptionKey = "/FnEkTX3bA2u+R4u9PG0vTy3IMnhci9gLYd9pzarZq0=";
+
     $server = new AuthorizationServer(
         $clientRepository,
         $accessTokenRepository,
         $scopeRepository,
         APP_PATH.'/private.key',
-        Key::loadFromAsciiSafeString('def000007b563c22b8980cda772eb3e550f6bf6b9c54dbf769474edf155a103995f04a3602a58dbc2905a45075236fe7fc0a503bab6ea4c2618850e5e7bd6992a9ec0003')
+        $encryptionKey
     );
 
     $server->enableGrantType(

@@ -18,6 +18,14 @@ use Phalcon\Mvc\Controller;
  * @package App\Controllers
  */
 
+ /*
+ * Expectation
+ * @method POST
+ * @required body : grant_type client_credentials
+ * @required body : client_id
+ * @optional body : client_secret
+ * @optional body : scope *Space delimited*
+ */
 class AuthController extends Controller
 {
     
