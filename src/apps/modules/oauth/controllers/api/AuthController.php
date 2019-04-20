@@ -31,8 +31,4 @@ class AuthController extends Controller
         $httpResponse->setContent($response->getBody());
         $httpResponse->send();
     }
-
-    public function helloAction(){
-        return "hell yeah!";
-    }
 }

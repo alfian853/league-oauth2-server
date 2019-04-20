@@ -8,15 +8,12 @@ return new Config(
 
         'database' => [
             'adapter' => 'Phalcon\Db\Adapter\Pdo\Mysql',
-            'host' => 'localhost',
-            'port' => '3306',
-            'password' => 'pass',
-            'dbname' => 'dbname'
+            'host' => getenv("DB_HOST"),
+            'port' => getenv("DB_PORT"),
+            'username' => getenv("DB_USERNAME"),
+            'password' => getenv("DB_PASS"),
+            'dbname' => getenv("DB_NAME")
         ],   
-        
-        'url' => [
-            'baseUrl' => 'http://oidc.local/',
-        ],
         
         'application' => [
             'libraryDir' => APP_PATH . "/lib/",
